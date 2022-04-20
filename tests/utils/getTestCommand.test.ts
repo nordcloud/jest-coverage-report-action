@@ -19,6 +19,46 @@ describe('getTestCommand', () => {
         );
     });
 
+    it('should add double hyphens for npm and pnpm', async () => {
+        expect(
+            await getTestCommand(
+                'npm run test:coverage',
+                'report.json',
+                undefined
+            )
+        ).toBe('npm run test:coverage');
+
+        expect(
+            await getTestCommand(
+                'pnpm run test:coverage',
+                'report.json',
+                undefined
+            )
+        ).toBe('pnpm run test:coverage');
+    });
+
+    it('should not add two sets of double hyphens for npm and pnpm', async () => {
+        expect(
+            await getTestCommand(
+                'npm run test:coverage -- --coverageReporters="text" --coverageReporters="text-summary"',
+                'report.json',
+                undefined
+            )
+        ).toBe(
+            'npm run test:coverage -- --coverageReporters="text" --coverageReporters="text-summary"'
+        );
+
+        expect(
+            await getTestCommand(
+                'pnpm run test:coverage -- --coverageReporters="text" --coverageReporters="text-summary"',
+                'report.json',
+                undefined
+            )
+        ).toBe(
+            'pnpm run test:coverage -- --coverageReporters="text" --coverageReporters="text-summary"'
+        );
+    });
+
     it('should keep command', async () => {
         expect(
             await getTestCommand(

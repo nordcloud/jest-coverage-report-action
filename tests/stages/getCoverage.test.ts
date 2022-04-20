@@ -1,5 +1,8 @@
+import { sep } from 'path';
+
 import { exec } from '@actions/exec';
-import { readFile, rmdir } from 'fs-extra';
+import { readFile } from 'fs-extra';
+import { mocked } from 'ts-jest/utils';
 
 import { getCoverage } from '../../src/stages/getCoverage';
 import { ActionError } from '../../src/typings/ActionError';
@@ -7,6 +10,9 @@ import { JsonReport } from '../../src/typings/JsonReport';
 import { Options } from '../../src/typings/Options';
 import { FailReason } from '../../src/typings/Report';
 import { createDataCollector } from '../../src/utils/DataCollector';
+import { removeDirectory } from '../../src/utils/removeDirectory';
+
+jest.mock('../../src/utils/removeDirectory');
 
 const defaultOptions: Options = {
     token: '',
@@ -19,9 +25,9 @@ const defaultOptions: Options = {
 };
 
 const clearMocks = () => {
-    (exec as jest.Mock<any, any>).mockClear();
-    (rmdir as jest.Mock<any, any>).mockClear();
-    (readFile as jest.Mock<any, any>).mockClear();
+    mocked(exec).mockClear();
+    mocked(readFile).mockClear();
+    mocked(removeDirectory).mockClear();
 };
 
 beforeEach(clearMocks);
@@ -39,17 +45,11 @@ describe('getCoverage', () => {
             undefined
         );
 
-        expect(rmdir).toBeCalledWith('node_modules', { recursive: true });
+        expect(removeDirectory).toBeCalledWith('node_modules');
         expect(exec).toBeCalledWith('npm install', undefined, {
             cwd: undefined,
         });
-        expect(
-            exec
-        ).toBeCalledWith(
-            'default script --ci --json --coverage --testLocationInResults --outputFile="report.json"',
-            [],
-            { cwd: undefined }
-        );
+        expect(exec).toBeCalledWith('default script', [], { cwd: undefined });
         expect(readFile).toHaveBeenCalledWith('report.json');
 
         expect(jsonReport).toStrictEqual({});
@@ -67,20 +67,12 @@ describe('getCoverage', () => {
             undefined
         );
 
-        expect(rmdir).toBeCalledWith('testDir/node_modules', {
-            recursive: true,
-        });
+        expect(removeDirectory).toBeCalledWith(`testDir${sep}node_modules`);
         expect(exec).toBeCalledWith('npm install', undefined, {
             cwd: 'testDir',
         });
-        expect(
-            exec
-        ).toBeCalledWith(
-            'default script --ci --json --coverage --testLocationInResults --outputFile="report.json"',
-            [],
-            { cwd: 'testDir' }
-        );
-        expect(readFile).toHaveBeenCalledWith('testDir/report.json');
+        expect(exec).toBeCalledWith('default script', [], { cwd: 'testDir' });
+        expect(readFile).toHaveBeenCalledWith(`testDir${sep}report.json`);
 
         expect(jsonReport).toStrictEqual({});
     });
@@ -90,7 +82,7 @@ describe('getCoverage', () => {
 
         (readFile as jest.Mock<any, any>).mockImplementationOnce(() => '{}');
 
-        const jsonReport = await getCoverage(
+        const jsonReportYarn = await getCoverage(
             dataCollector,
             { ...defaultOptions, packageManager: 'yarn' },
             false,
@@ -101,7 +93,22 @@ describe('getCoverage', () => {
             cwd: undefined,
         });
 
-        expect(jsonReport).toStrictEqual({});
+        expect(jsonReportYarn).toStrictEqual({});
+
+        (readFile as jest.Mock<any, any>).mockImplementationOnce(() => '{}');
+
+        const jsonReportPnpm = await getCoverage(
+            dataCollector,
+            { ...defaultOptions, packageManager: 'pnpm' },
+            false,
+            undefined
+        );
+
+        expect(exec).toBeCalledWith('pnpm install', undefined, {
+            cwd: undefined,
+        });
+
+        expect(jsonReportPnpm).toStrictEqual({});
     });
 
     it('should skip installation step', async () => {
@@ -116,17 +123,11 @@ describe('getCoverage', () => {
             undefined
         );
 
-        expect(rmdir).not.toBeCalledWith('node_modules', { recursive: true });
+        expect(removeDirectory).not.toBeCalledWith('node_modules');
         expect(exec).not.toBeCalledWith('npm install', undefined, {
             cwd: undefined,
         });
-        expect(
-            exec
-        ).toBeCalledWith(
-            'default script --ci --json --coverage --testLocationInResults --outputFile="report.json"',
-            [],
-            { cwd: undefined }
-        );
+        expect(exec).toBeCalledWith('default script', [], { cwd: undefined });
         expect(readFile).toHaveBeenCalledWith('report.json');
 
         expect(jsonReport).toStrictEqual({});
@@ -144,17 +145,13 @@ describe('getCoverage', () => {
             undefined
         );
 
-        expect(rmdir).not.toBeCalledWith('node_modules', { recursive: true });
+        expect(removeDirectory).not.toBeCalledWith('node_modules');
         expect(exec).not.toBeCalledWith('npm install', undefined, {
             cwd: undefined,
         });
-        expect(exec).not.toBeCalledWith(
-            'default script --ci --json --coverage --testLocationInResults --outputFile="report.json"',
-            [],
-            {
-                cwd: undefined,
-            }
-        );
+        expect(exec).not.toBeCalledWith('default script', [], {
+            cwd: undefined,
+        });
         expect(readFile).toHaveBeenCalledWith('report.json');
 
         expect(jsonReport).toStrictEqual({});
@@ -172,17 +169,13 @@ describe('getCoverage', () => {
             undefined
         );
 
-        expect(rmdir).toBeCalledWith('node_modules', { recursive: true });
+        expect(removeDirectory).toBeCalledWith('node_modules');
         expect(exec).toBeCalledWith('npm install', undefined, {
             cwd: undefined,
         });
-        expect(exec).toBeCalledWith(
-            'default script --ci --json --coverage --testLocationInResults --outputFile="report.json"',
-            [],
-            {
-                cwd: undefined,
-            }
-        );
+        expect(exec).toBeCalledWith('default script', [], {
+            cwd: undefined,
+        });
         expect(readFile).toHaveBeenCalledWith('report.json');
 
         expect(jsonReport).toStrictEqual({});
@@ -200,17 +193,13 @@ describe('getCoverage', () => {
             undefined
         );
 
-        expect(rmdir).toBeCalledWith('node_modules', { recursive: true });
+        expect(removeDirectory).toBeCalledWith('node_modules');
         expect(exec).toBeCalledWith('npm install', undefined, {
             cwd: undefined,
         });
-        expect(exec).toBeCalledWith(
-            'default script --ci --json --coverage --testLocationInResults --outputFile="report.json"',
-            [],
-            {
-                cwd: undefined,
-            }
-        );
+        expect(exec).toBeCalledWith('default script', [], {
+            cwd: undefined,
+        });
         expect(readFile).toHaveBeenCalledWith('report.json');
 
         expect(jsonReport).toStrictEqual({});
@@ -231,17 +220,13 @@ describe('getCoverage', () => {
             undefined
         );
 
-        expect(rmdir).toBeCalledWith('node_modules', { recursive: true });
+        expect(removeDirectory).toBeCalledWith('node_modules');
         expect(exec).toBeCalledWith('npm install', undefined, {
             cwd: undefined,
         });
-        expect(exec).toBeCalledWith(
-            'default script --ci --json --coverage --testLocationInResults --outputFile="report.json"',
-            [],
-            {
-                cwd: undefined,
-            }
-        );
+        expect(exec).toBeCalledWith('default script', [], {
+            cwd: undefined,
+        });
         expect(readFile).toHaveBeenCalledWith('report.json');
 
         expect(jsonReport).toStrictEqual({});
@@ -264,17 +249,13 @@ describe('getCoverage', () => {
             undefined
         );
 
-        expect(rmdir).toBeCalledWith('node_modules', { recursive: true });
+        expect(removeDirectory).toBeCalledWith('node_modules');
         expect(exec).toBeCalledWith('npm install', undefined, {
             cwd: undefined,
         });
-        expect(exec).toBeCalledWith(
-            'default script --ci --json --coverage --testLocationInResults --outputFile="report.json"',
-            [],
-            {
-                cwd: undefined,
-            }
-        );
+        expect(exec).toBeCalledWith('default script', [], {
+            cwd: undefined,
+        });
         expect(readFile).toHaveBeenCalledWith('report.json');
 
         expect(jsonReport).toStrictEqual({});
@@ -309,7 +290,7 @@ describe('getCoverage', () => {
             'custom filepath'
         );
 
-        expect(rmdir).not.toBeCalled();
+        expect(removeDirectory).not.toBeCalled();
         expect(exec).not.toBeCalled();
         expect(readFile).toBeCalledWith('custom filepath');
         expect(readFile).toBeCalledTimes(1);
@@ -330,7 +311,7 @@ describe('getCoverage', () => {
             new ActionError(FailReason.FAILED_GETTING_COVERAGE)
         );
 
-        expect(rmdir).not.toBeCalled();
+        expect(removeDirectory).not.toBeCalled();
         expect(exec).not.toBeCalled();
         expect(readFile).toBeCalledWith('custom filepath');
         expect(readFile).toBeCalledTimes(1);

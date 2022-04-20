@@ -7,12 +7,15 @@ import { formatCoverageAnnotations } from './format/annotations/formatCoverageAn
 import { formatFailedTestsAnnotations } from './format/annotations/formatFailedTestsAnnotations';
 import { generateCommitReport } from './report/generateCommitReport';
 import { generatePRReport } from './report/generatePRReport';
+import { checkThreshold } from './stages/checkThreshold';
 import { createReport } from './stages/createReport';
 import { getCoverage } from './stages/getCoverage';
 import { switchBranch } from './stages/switchBranch';
 import { JsonReport } from './typings/JsonReport';
 import { getOptions } from './typings/Options';
-import { createDataCollector } from './utils/DataCollector';
+import { ThresholdResult } from './typings/ThresholdResult';
+import { createDataCollector, DataCollector } from './utils/DataCollector';
+import { getNormalThreshold } from './utils/getNormalThreshold';
 import { i18n } from './utils/i18n';
 import { runStage } from './utils/runStage';
 
@@ -30,6 +33,17 @@ export const run = async (
     if (!isInitialized || !options) {
         throw Error('Initialization failed.');
     }
+
+    const [isThresholdParsed, threshold] = await runStage(
+        'parseThreshold',
+        dataCollector,
+        () => {
+            return getNormalThreshold(
+                options.workingDirectory ?? process.cwd(),
+                options.threshold
+            );
+        }
+    );
 
     const [isHeadCoverageGenerated, headCoverage] = await runStage(
         'headCoverage',
@@ -54,7 +68,11 @@ export const run = async (
         async (skip) => {
             const baseBranch = context.payload.pull_request?.base.ref;
 
-            if (!isInPR || !baseBranch) {
+            // no need to switch branch when:
+            // - this is not a PR
+            // - this is the PR base branch
+            // - a baseCoverageFile is provided
+            if (!isInPR || !baseBranch || !!options.baseCoverageFile) {
                 skip();
             }
 
@@ -68,7 +86,7 @@ export const run = async (
         'baseCoverage',
         dataCollector,
         async (skip) => {
-            if (!isSwitched) {
+            if (!isSwitched && !options.baseCoverageFile) {
                 skip();
             }
 
@@ -81,15 +99,45 @@ export const run = async (
         }
     );
 
+    await runStage('switchBack', dataCollector, async (skip) => {
+        if (!isSwitched) {
+            skip();
+        }
+
+        await switchBranch(context.payload.pull_request!.head.ref);
+    });
+
     if (baseCoverage) {
         dataCollector.add(baseCoverage);
     }
+
+    const [, thresholdResults] = await runStage(
+        'checkThreshold',
+        dataCollector,
+        async (skip) => {
+            if (!isHeadCoverageGenerated || !isThresholdParsed) {
+                skip();
+            }
+
+            try {
+                return checkThreshold(
+                    headCoverage!,
+                    threshold!,
+                    options.workingDirectory,
+                    dataCollector as DataCollector<unknown>
+                );
+            } catch (error) {
+                console.error('checkThreshold error', error);
+                return [] as ThresholdResult[];
+            }
+        }
+    );
 
     const [isReportContentGenerated, summaryReport] = await runStage(
         'generateReportContent',
         dataCollector,
         async () => {
-            return createReport(dataCollector, options);
+            return createReport(dataCollector, options, thresholdResults ?? []);
         }
     );
 

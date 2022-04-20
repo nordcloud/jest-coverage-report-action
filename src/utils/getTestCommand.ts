@@ -11,12 +11,13 @@ export const getTestCommand = async (
     }
 
     const isNpmStyle = command.startsWith('npm') || command.startsWith('pnpm');
+    const isJest = command.includes('jest');
 
-    // building new command
-    const newCommandBuilder: (string | boolean)[] = [
-        command,
-        // add two hypens if it is npm or pnpm package managers
-        isNpmStyle && '--',
+    const hasDoubleHyhen = command.includes(' -- ');
+
+    const jestParams = [
+        // add two hypens if it is npm or pnpm package managers and two hyphens don't already exist
+        isNpmStyle && !hasDoubleHyhen && '--',
         // argument which indicates that jest runs in CI environment
         '--ci',
         // telling jest that output should be in json format
@@ -27,6 +28,12 @@ export const getTestCommand = async (
         '--testLocationInResults',
         // output file
         `--outputFile="${outputFile}"`,
+    ];
+
+    // building new command
+    const newCommandBuilder: (string | boolean)[] = [
+        command,
+        ...(isJest ? jestParams : []),
     ];
 
     return newCommandBuilder.filter(Boolean).join(' ');
