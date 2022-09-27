@@ -1,4 +1,4 @@
-name: 'Jest coverage report'
+name: 'Vitest coverage report'
 description: 'Track your code coverage in each pull request.'
 author: 'Artiom Tretjakovas <artiom.tretjakovas2@gmail.com>'
 branding:
@@ -12,7 +12,7 @@ inputs:
     test-script:
         required: false
         description: 'A custom npm script to get coverage'
-        default: npx jest
+        default: npx vitest
     threshold:
         required: false
         description: 'Coverage threshold. If total coverage is less than threshold, PR will be rejected'

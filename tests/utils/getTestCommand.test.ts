@@ -5,17 +5,17 @@ describe('getTestCommand', () => {
         expect(
             await getTestCommand('yarn jest', 'report.json', undefined)
         ).toBe(
-            'yarn jest --ci --json --coverage --testLocationInResults --outputFile="report.json"'
+            'yarn jest --reporter=json --coverage --outputFile="report.json"'
         );
 
         expect(await getTestCommand('npx jest', 'report.json', undefined)).toBe(
-            'npx jest --ci --json --coverage --testLocationInResults --outputFile="report.json"'
+            'npx jest --reporter=json --coverage --outputFile="report.json"'
         );
 
         expect(
             await getTestCommand('pnpx jest', 'report.json', undefined)
         ).toBe(
-            'pnpx jest --ci --json --coverage --testLocationInResults --outputFile="report.json"'
+            'pnpx jest --reporter=json --coverage --outputFile="report.json"'
         );
     });
 
@@ -27,7 +27,7 @@ describe('getTestCommand', () => {
                 undefined
             )
         ).toBe(
-            'npm run test:coverage -- --ci --json --coverage --testLocationInResults --outputFile="report.json"'
+            'npm run test:coverage -- --reporter=json --coverage --outputFile="report.json"'
         );
 
         expect(
@@ -37,7 +37,7 @@ describe('getTestCommand', () => {
                 undefined
             )
         ).toBe(
-            'pnpm run test:coverage -- --ci --json --coverage --testLocationInResults --outputFile="report.json"'
+            'pnpm run test:coverage -- --reporter=json --coverage --outputFile="report.json"'
         );
     });
 
@@ -49,7 +49,7 @@ describe('getTestCommand', () => {
                 undefined
             )
         ).toBe(
-            'npm run test:coverage -- --coverageReporters="text" --coverageReporters="text-summary" --ci --json --coverage --testLocationInResults --outputFile="report.json"'
+            'npm run test:coverage -- --coverageReporters="text" --coverageReporters="text-summary"  --reporter=json --coverage --outputFile="report.json"'
         );
 
         expect(
@@ -59,7 +59,7 @@ describe('getTestCommand', () => {
                 undefined
             )
         ).toBe(
-            'pnpm run test:coverage -- --coverageReporters="text" --coverageReporters="text-summary" --ci --json --coverage --testLocationInResults --outputFile="report.json"'
+            'pnpm run test:coverage -- --coverageReporters="text" --coverageReporters="text-summary"  --reporter=json --coverage --outputFile="report.json"'
         );
     });
 

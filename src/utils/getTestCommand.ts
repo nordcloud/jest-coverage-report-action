@@ -19,14 +19,10 @@ export const getTestCommand = async (
         command,
         // add two hypens if it is npm or pnpm package managers and two hyphens don't already exist
         isNpmStyle && !hasDoubleHyhen && '--',
-        // argument which indicates that jest runs in CI environment
-        '--ci',
         // telling jest that output should be in json format
-        '--json',
+        '--reporter=json',
         // force jest to collect coverage
         '--coverage',
-        // argument which tells jest to include tests' locations in the generated json output
-        '--testLocationInResults',
         // output file
         `--outputFile="${outputFile}"`,
     ];
