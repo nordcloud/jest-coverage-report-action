@@ -20,9 +20,6 @@ export const checkThreshold = (
     workingDirectory: string | undefined,
     dataCollector: DataCollector<unknown>
 ) => {
-    console.log('report', report);
-    console.log('threshold', threshold);
-
     const cwd = joinPaths(process.cwd(), workingDirectory);
     // Maybe somehow take this from "format" stage?
     const coverageDetailMap = Object.fromEntries(
